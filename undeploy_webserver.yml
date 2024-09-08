@@ -1,0 +1,48 @@
+---
+- name: Undeploy Webserver
+  hosts: webservers
+  become: yes
+  tasks:
+    - name: Stop Apache service
+      systemd:
+        name: apache2
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+
+    - name: Remove Apache package
+      apt:
+        name: apache2
+        state: absent
+        purge: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Remove custom index.html
+      file:
+        path: /var/www/html/index.html
+        state: absent
+
+    - name: Remove Apache configuration files
+      file:
+        path: /etc/apache2
+        state: absent
+
+    - name: Remove Apache log files
+      file:
+        path: /var/log/apache2
+        state: absent
+
+    - name: Remove port 8080 from firewall (if UFW is used)
+      ufw:
+        rule: allow
+        port: '8080'
+        delete: yes
+      ignore_errors: yes
+
+    - name: Flush handlers
+      meta: flush_handlers
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+      when: ansible_os_family == "Debian"
